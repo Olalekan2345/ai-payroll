@@ -20,6 +20,16 @@ export const PAYROLL_ABI = [
     type: "function",
   },
   {
+    inputs: [
+      { name: "wallet", type: "address" },
+      { name: "newRateWei", type: "uint256" },
+    ],
+    name: "updateHourlyRate",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
     inputs: [{ name: "wallet", type: "address" }],
     name: "deactivateEmployee",
     outputs: [],
@@ -160,6 +170,15 @@ export const PAYROLL_ABI = [
       { indexed: false, name: "timestamp", type: "uint256" },
     ],
     name: "EmployeeRegistered",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: "wallet", type: "address" },
+      { indexed: false, name: "newRateWei", type: "uint256" },
+    ],
+    name: "HourlyRateUpdated",
     type: "event",
   },
   {

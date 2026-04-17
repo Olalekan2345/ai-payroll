@@ -13,6 +13,35 @@ import ThemeToggle from "@/components/shared/ThemeToggle";
 
 type Tab = "overview" | "register" | "attendance" | "payroll";
 
+function ShareEmployeeLink() {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    const url = `${window.location.origin}/employee`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 ${
+        copied
+          ? "og-badge-success"
+          : "og-btn-ghost"
+      }`}
+    >
+      {copied ? (
+        <>✅ Copied!</>
+      ) : (
+        <>🔗 Share Employee Link</>
+      )}
+    </button>
+  );
+}
+
 export default function EmployerDashboard() {
   const { address, isConnected } = useAccount();
   const router = useRouter();
@@ -60,6 +89,7 @@ export default function EmployerDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <ShareEmployeeLink />
             <div className="hidden sm:flex items-center gap-2 og-card px-3 py-1.5 rounded-lg">
               <span className="w-2 h-2 bg-emerald-400 rounded-full og-pulse" />
               <span className="text-xs text-white/60 font-mono">

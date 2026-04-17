@@ -117,6 +117,22 @@ export function useClockOut() {
   return { clockOut, hash, isPending, isConfirming, isSuccess, error };
 }
 
+export function useUpdateSalary() {
+  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  const updateRate = (wallet: `0x${string}`, newRateWei: bigint) => {
+    writeContract({
+      address: CONTRACT_ADDRESS,
+      abi: PAYROLL_ABI,
+      functionName: "updateHourlyRate",
+      args: [wallet, newRateWei],
+    });
+  };
+
+  return { updateRate, hash, isPending, isConfirming, isSuccess, error };
+}
+
 export function useExecutePayroll() {
   const { writeContract, data: hash, isPending, error } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });

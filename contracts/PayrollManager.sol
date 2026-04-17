@@ -54,6 +54,7 @@ contract PayrollManager is AccessControl, ReentrancyGuard {
     // Events
     event EmployeeRegistered(address indexed wallet, string name, uint256 timestamp);
     event EmployeeDeactivated(address indexed wallet);
+    event HourlyRateUpdated(address indexed wallet, uint256 newRateWei);
     event ClockIn(address indexed employee, uint256 timestamp, uint256 weekNumber);
     event ClockOut(address indexed employee, uint256 timestamp, uint256 secondsWorked, uint256 weekNumber);
     event PayrollExecuted(address indexed employee, uint256 weekNumber, uint256 amount, uint256 timestamp);
@@ -97,6 +98,13 @@ contract PayrollManager is AccessControl, ReentrancyGuard {
 
         _grantRole(EMPLOYEE_ROLE, wallet);
         emit EmployeeRegistered(wallet, name, block.timestamp);
+    }
+
+    function updateHourlyRate(address wallet, uint256 newRateWei) external onlyRole(EMPLOYER_ROLE) {
+        require(isEmployee[wallet], "Not an employee");
+        require(newRateWei > 0, "Rate must be > 0");
+        employees[wallet].hourlyRateWei = newRateWei;
+        emit HourlyRateUpdated(wallet, newRateWei);
     }
 
     function deactivateEmployee(address wallet) external onlyRole(EMPLOYER_ROLE) {
