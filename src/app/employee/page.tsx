@@ -4,26 +4,25 @@ import { useState } from "react";
 import { useAccount } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useRouter } from "next/navigation";
-import { useIsEmployee, useIsClockedIn, useWeeklyHours } from "@/hooks/usePayroll";
+import { useIsEmployee, useIsClockedIn, useWeeklyHours, useLastClockIn } from "@/hooks/usePayroll";
 import { getCurrentWeekNumber } from "@/lib/storage";
-import ClockWidget from "@/components/employee/ClockWidget";
 import MyAttendance from "@/components/employee/MyAttendance";
 import PaymentHistory from "@/components/employee/PaymentHistory";
 import { CONTRACT_ADDRESS } from "@/lib/config";
 import ThemeToggle from "@/components/shared/ThemeToggle";
 
-type Tab = "clock" | "attendance" | "payments";
+type Tab = "attendance" | "payments";
 
 export default function EmployeeDashboard() {
   const { address, isConnected } = useAccount();
   const { data: isEmployee, isLoading: checkingRole } = useIsEmployee(address);
   const { data: isClockedIn } = useIsClockedIn(address);
   const { data: weeklyHours } = useWeeklyHours(address, getCurrentWeekNumber());
+  const { data: lastClockIn } = useLastClockIn(address);
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<Tab>("clock");
+  const [activeTab, setActiveTab] = useState<Tab>("attendance");
 
   const tabs: { id: Tab; label: string; icon: string }[] = [
-    { id: "clock", label: "Clock In/Out", icon: "⏰" },
     { id: "attendance", label: "My Hours", icon: "📊" },
     { id: "payments", label: "Payments", icon: "💳" },
   ];
@@ -36,7 +35,7 @@ export default function EmployeeDashboard() {
         <div className="relative z-10 text-center space-y-6">
           <div className="text-5xl">👷</div>
           <h1 className="text-3xl font-bold text-white">Employee Dashboard</h1>
-          <p className="text-white/40">Connect your wallet to track attendance and view payments</p>
+          <p className="text-white/40">Connect your wallet to view your attendance and payments</p>
           <ConnectButton />
         </div>
       </div>
@@ -70,6 +69,7 @@ export default function EmployeeDashboard() {
   }
 
   const hours = weeklyHours ? Number((weeklyHours as any)[1]) : 0;
+  const lastIn = lastClockIn ? new Date(Number(lastClockIn) * 1000) : null;
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -87,13 +87,7 @@ export default function EmployeeDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div
-              className={`hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs border ${
-                isClockedIn
-                  ? "og-badge-success"
-                  : "og-badge-neutral"
-              }`}
-            >
+            <div className={`hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs border ${isClockedIn ? "og-badge-success" : "og-badge-neutral"}`}>
               <span className={`w-1.5 h-1.5 rounded-full ${isClockedIn ? "bg-emerald-400 og-pulse" : "bg-white/30"}`} />
               {isClockedIn ? "Working" : "Off Clock"}
             </div>
@@ -119,15 +113,37 @@ export default function EmployeeDashboard() {
             <span className="text-cyan-400 font-semibold">Saturday</span>
           </div>
           <div className="flex items-center gap-2 whitespace-nowrap text-xs text-white/20">
-            <span>Wallet:</span>
             <span className="font-mono">{address?.slice(0, 6)}…{address?.slice(-4)}</span>
           </div>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      <div className="max-w-4xl mx-auto px-4 py-6 space-y-5">
+
+        {/* Clock Status Card */}
+        <div className="og-card rounded-2xl p-5 flex flex-wrap items-center gap-5"
+          style={{ background: isClockedIn ? "rgba(16,185,129,0.06)" : "rgba(124,58,237,0.07)", borderColor: isClockedIn ? "rgba(16,185,129,0.25)" : "rgba(139,92,246,0.2)" }}>
+          <div className="flex items-center gap-3">
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${isClockedIn ? "og-badge-success" : "og-badge-neutral"}`}>
+              {isClockedIn ? "🟢" : "⚫"}
+            </div>
+            <div>
+              <p className="text-white font-semibold">{isClockedIn ? "Currently Working" : "Not Clocked In"}</p>
+              <p className="text-xs text-white/40 mt-0.5">
+                {isClockedIn
+                  ? lastIn ? `Clocked in at ${lastIn.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} on ${lastIn.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })}` : "Clocked in"
+                  : "Your employer manages clock in/out"}
+              </p>
+            </div>
+          </div>
+          <div className="ml-auto text-right">
+            <p className="text-xs text-white/30">Managed by employer</p>
+            <p className="text-xs text-white/50 mt-0.5">Mon–Fri · 9 AM – 5 PM UTC</p>
+          </div>
+        </div>
+
         {/* Tabs */}
-        <div className="flex gap-1 og-card p-1 rounded-xl mb-6">
+        <div className="flex gap-1 og-card p-1 rounded-xl">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -143,55 +159,8 @@ export default function EmployeeDashboard() {
         </div>
 
         {/* Tab Content */}
-        <div className="grid md:grid-cols-[340px_1fr] gap-6 items-start">
-          {activeTab === "clock" && (
-            <>
-              <ClockWidget employeeName="Employee" />
-              <div className="space-y-4">
-                <div className="og-card rounded-2xl p-5">
-                  <h3 className="text-base font-semibold text-white mb-3">📌 How It Works</h3>
-                  <ul className="space-y-2 text-sm text-white/40">
-                    <li className="flex gap-2"><span className="og-gradient-text font-bold">1.</span> Click <strong className="text-white">Clock In</strong> when you start work.</li>
-                    <li className="flex gap-2"><span className="og-gradient-text font-bold">2.</span> Click <strong className="text-white">Clock Out</strong> when you finish.</li>
-                    <li className="flex gap-2"><span className="og-gradient-text font-bold">3.</span> Your time is verified on-chain and stored on <strong className="text-white">0G Storage</strong>.</li>
-                    <li className="flex gap-2"><span className="og-gradient-text font-bold">4.</span> The <strong className="text-white">AI agent</strong> calculates your hours every week.</li>
-                    <li className="flex gap-2"><span className="og-gradient-text font-bold">5.</span> Payment is sent to your wallet every <strong className="text-white">Saturday</strong>.</li>
-                  </ul>
-                </div>
-                <div className="og-card rounded-2xl p-5">
-                  <h3 className="text-base font-semibold text-white mb-3">📋 Pay Rules</h3>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    {[
-                      ["Rate", "1 A0GI/hour"],
-                      ["Schedule", "Mon–Fri"],
-                      ["Hours", "9AM–5PM UTC"],
-                      ["Max/Day", "8 hours"],
-                      ["Overtime", "Not counted"],
-                      ["Weekends", "Not counted"],
-                    ].map(([k, v]) => (
-                      <div key={k} className="flex justify-between bg-white/[0.03] rounded-lg px-3 py-2 border border-white/[0.04]">
-                        <span className="text-white/40">{k}</span>
-                        <span className="text-white/70 font-medium">{v}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-
-          {activeTab === "attendance" && (
-            <div className="md:col-span-2">
-              <MyAttendance />
-            </div>
-          )}
-
-          {activeTab === "payments" && (
-            <div className="md:col-span-2">
-              <PaymentHistory />
-            </div>
-          )}
-        </div>
+        {activeTab === "attendance" && <MyAttendance />}
+        {activeTab === "payments" && <PaymentHistory />}
       </div>
     </div>
   );

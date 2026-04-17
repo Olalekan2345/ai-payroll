@@ -107,6 +107,27 @@ contract PayrollManager is AccessControl, ReentrancyGuard {
         emit HourlyRateUpdated(wallet, newRateWei);
     }
 
+    function clockInEmployee(address wallet) external onlyRole(EMPLOYER_ROLE) {
+        require(isEmployee[wallet], "Not an employee");
+        require(employees[wallet].active, "Employee not active");
+        require(!currentlyClockedIn[wallet], "Already clocked in");
+        currentlyClockedIn[wallet] = true;
+        lastClockIn[wallet] = block.timestamp;
+        uint256 weekNum = getWeekNumber(block.timestamp);
+        emit ClockIn(wallet, block.timestamp, weekNum);
+    }
+
+    function clockOutEmployee(address wallet) external onlyRole(EMPLOYER_ROLE) {
+        require(currentlyClockedIn[wallet], "Not clocked in");
+        uint256 clockInTime = lastClockIn[wallet];
+        uint256 clockOutTime = block.timestamp;
+        uint256 weekNum = getWeekNumber(clockInTime);
+        uint256 effectiveSeconds = calculateEffectiveSeconds(clockInTime, clockOutTime);
+        weeklySeconds[weekNum][wallet] += effectiveSeconds;
+        currentlyClockedIn[wallet] = false;
+        emit ClockOut(wallet, clockOutTime, effectiveSeconds, weekNum);
+    }
+
     function deactivateEmployee(address wallet) external onlyRole(EMPLOYER_ROLE) {
         require(isEmployee[wallet], "Not an employee");
         employees[wallet].active = false;

@@ -5,6 +5,13 @@ export const PAYROLL_ABI = [
   // Roles
   { inputs: [], name: "EMPLOYER_ROLE", outputs: [{ type: "bytes32" }], stateMutability: "view", type: "function" },
   { inputs: [], name: "EMPLOYEE_ROLE", outputs: [{ type: "bytes32" }], stateMutability: "view", type: "function" },
+  {
+    inputs: [{ name: "role", type: "bytes32" }, { name: "account", type: "address" }],
+    name: "hasRole",
+    outputs: [{ type: "bool" }],
+    stateMutability: "view",
+    type: "function",
+  },
 
   // Employer Functions
   {
@@ -17,6 +24,27 @@ export const PAYROLL_ABI = [
     name: "registerEmployee",
     outputs: [],
     stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "wallet", type: "address" }],
+    name: "clockInEmployee",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "wallet", type: "address" }],
+    name: "clockOutEmployee",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "emp", type: "address" }],
+    name: "lastClockIn",
+    outputs: [{ type: "uint256" }],
+    stateMutability: "view",
     type: "function",
   },
   {

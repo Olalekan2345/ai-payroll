@@ -155,6 +155,25 @@
       {
         "indexed": true,
         "internalType": "address",
+        "name": "wallet",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newRateWei",
+        "type": "uint256"
+      }
+    ],
+    "name": "HourlyRateUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
         "name": "employee",
         "type": "address"
       },
@@ -944,6 +963,24 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "wallet",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "newRateWei",
+        "type": "uint256"
+      }
+    ],
+    "name": "updateHourlyRate",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {

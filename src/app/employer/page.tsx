@@ -4,14 +4,16 @@ import { useState } from "react";
 import { useAccount } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useRouter } from "next/navigation";
+import { useIsEmployer } from "@/hooks/usePayroll";
 import RegisterEmployee from "@/components/employer/RegisterEmployee";
 import EmployeeTable from "@/components/employer/EmployeeTable";
 import AttendanceLogs from "@/components/employer/AttendanceLogs";
 import PayrollPanel from "@/components/employer/PayrollPanel";
+import ClockManagement from "@/components/employer/ClockManagement";
 import { CONTRACT_ADDRESS } from "@/lib/config";
 import ThemeToggle from "@/components/shared/ThemeToggle";
 
-type Tab = "overview" | "register" | "attendance" | "payroll";
+type Tab = "overview" | "register" | "clock" | "attendance" | "payroll";
 
 function ShareEmployeeLink() {
   const [copied, setCopied] = useState(false);
@@ -44,6 +46,7 @@ function ShareEmployeeLink() {
 
 export default function EmployerDashboard() {
   const { address, isConnected } = useAccount();
+  const { data: isEmployer, isLoading: checkingRole } = useIsEmployer(address);
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [refreshKey, setRefreshKey] = useState(0);
@@ -51,6 +54,7 @@ export default function EmployerDashboard() {
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: "overview", label: "Overview", icon: "🏠" },
     { id: "register", label: "Register", icon: "➕" },
+    { id: "clock", label: "Clock", icon: "⏰" },
     { id: "attendance", label: "Attendance", icon: "📋" },
     { id: "payroll", label: "Payroll & AI", icon: "🤖" },
   ];
@@ -65,6 +69,45 @@ export default function EmployerDashboard() {
           <h1 className="text-3xl font-bold text-white">Employer Dashboard</h1>
           <p className="text-white/40">Connect your admin wallet to manage payroll</p>
           <ConnectButton />
+        </div>
+      </div>
+    );
+  }
+
+  if (checkingRole) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="og-gradient-text animate-pulse text-sm font-medium">Verifying employer access…</div>
+      </div>
+    );
+  }
+
+  if (CONTRACT_ADDRESS !== "0x0000000000000000000000000000000000000000" && isEmployer === false) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-4 og-grid-bg">
+        <div className="og-glow-purple" style={{ top: "20%", right: "20%", opacity: 0.5 }} />
+        <div className="og-glow-cyan" style={{ bottom: "20%", left: "20%", opacity: 0.3 }} />
+        <div className="relative z-10 text-center space-y-5 max-w-sm">
+          <div className="text-5xl">🔒</div>
+          <h2 className="text-2xl font-bold text-white">Access Denied</h2>
+          <p className="text-white/40 text-sm leading-relaxed">
+            Wallet <span className="font-mono text-white/60">{address?.slice(0, 6)}…{address?.slice(-4)}</span> does not have employer privileges.
+            <br />Only the contract owner can access this dashboard.
+          </p>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={() => router.push("/employee")}
+              className="og-btn-ghost px-5 py-2.5 rounded-xl text-sm font-medium"
+            >
+              Go to Employee Dashboard
+            </button>
+            <button
+              onClick={() => router.push("/")}
+              className="og-btn-primary px-5 py-2.5 rounded-xl text-sm font-semibold"
+            >
+              ← Home
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -170,6 +213,7 @@ export default function EmployerDashboard() {
           </div>
         )}
 
+        {activeTab === "clock" && <ClockManagement />}
         {activeTab === "attendance" && <AttendanceLogs />}
         {activeTab === "payroll" && <PayrollPanel />}
       </div>

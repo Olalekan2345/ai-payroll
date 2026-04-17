@@ -2,8 +2,8 @@
   "_format": "hh-sol-cache-2",
   "files": {
     "C:\\Users\\USER\\Desktop\\AI-Payroll\\contracts\\PayrollManager.sol": {
-      "lastModificationDate": 1776413698990,
-      "contentHash": "bd9f68d979389803c29e7b0ed5755ece",
+      "lastModificationDate": 1776434087172,
+      "contentHash": "0e235bdc87df5e81b1e7577cb8312d0e",
       "sourceName": "contracts/PayrollManager.sol",
       "solcConfig": {
         "version": "0.8.20",
