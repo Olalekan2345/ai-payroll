@@ -25,7 +25,7 @@ export default function Landing() {
   const { isConnected } = useAccount();
 
   return (
-    <div className="min-h-screen bg-black text-white overflow-x-hidden">
+    <div className="min-h-screen text-white overflow-x-hidden" style={{ background: "transparent" }}>
 
       {/* Nav */}
       <nav className="og-nav fixed top-0 left-0 right-0 z-50">
@@ -53,19 +53,24 @@ export default function Landing() {
       </nav>
 
       {/* Hero */}
-      <section className="relative min-h-screen flex items-center justify-center pt-20 og-grid-bg">
+      <section className="relative min-h-screen flex items-center justify-center pt-20 og-grid-bg overflow-hidden">
+        {/* Deep gradient mesh */}
+        <div className="absolute inset-0 pointer-events-none" style={{
+          background: "radial-gradient(ellipse 80% 70% at 50% 0%, rgba(109,40,217,0.35) 0%, transparent 65%), radial-gradient(ellipse 60% 50% at 80% 60%, rgba(6,182,212,0.18) 0%, transparent 60%)"
+        }} />
         {/* Glow blobs */}
-        <div className="og-glow-purple og-orb" style={{ top: "10%", left: "5%", opacity: 0.7 }} />
-        <div className="og-glow-cyan og-orb" style={{ top: "20%", right: "5%", animationDelay: "3s", opacity: 0.6 }} />
-        <div className="og-glow-purple" style={{ bottom: "10%", right: "20%", opacity: 0.4, width: "400px", height: "400px" }} />
+        <div className="og-glow-purple og-orb" style={{ top: "5%", left: "3%", opacity: 1 }} />
+        <div className="og-glow-cyan og-orb" style={{ top: "15%", right: "3%", animationDelay: "3s", opacity: 0.9 }} />
+        <div className="og-glow-purple" style={{ bottom: "5%", right: "15%", opacity: 0.5, width: "500px", height: "500px" }} />
 
         <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full og-card text-sm mb-8">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full og-card text-sm mb-8"
+            style={{ background: "rgba(124,58,237,0.12)", borderColor: "rgba(192,132,252,0.3)" }}>
             <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 og-pulse" />
             <span className="text-white/60">Powered by</span>
             <span className="og-gradient-text font-semibold">0G Labs</span>
-            <span className="text-white/40">·</span>
+            <span className="text-white/30">·</span>
             <span className="text-white/60">Galileo Testnet</span>
           </div>
 
@@ -112,9 +117,10 @@ export default function Landing() {
               { label: "Pay Cycle", value: "Weekly" },
               { label: "Network", value: "0G Galileo" },
             ].map(({ label, value }) => (
-              <div key={label} className="og-card px-4 py-2 rounded-full text-sm flex items-center gap-2">
+              <div key={label} className="px-4 py-2 rounded-full text-sm flex items-center gap-2"
+                style={{ background: "rgba(124,58,237,0.12)", border: "1px solid rgba(139,92,246,0.28)" }}>
                 <span className="text-white/40">{label}</span>
-                <span className="text-white/80 font-medium">{value}</span>
+                <span className="og-gradient-text font-semibold">{value}</span>
               </div>
             ))}
           </div>
@@ -122,9 +128,14 @@ export default function Landing() {
       </section>
 
       {/* Features */}
-      <section className="relative py-28 og-grid-bg">
-        <div className="og-glow-purple" style={{ top: "20%", right: "-5%", opacity: 0.5 }} />
-        <div className="max-w-7xl mx-auto px-6">
+      <section className="relative py-28 og-grid-bg overflow-hidden">
+        {/* Deep purple band */}
+        <div className="absolute inset-0 pointer-events-none" style={{
+          background: "linear-gradient(180deg, transparent 0%, rgba(88,28,135,0.15) 30%, rgba(88,28,135,0.2) 60%, transparent 100%)"
+        }} />
+        <div className="og-glow-purple" style={{ top: "10%", right: "-5%", opacity: 0.8 }} />
+        <div className="og-glow-cyan" style={{ bottom: "10%", left: "-5%", opacity: 0.5 }} />
+        <div className="max-w-7xl mx-auto px-6 relative z-10">
           <div className="text-center mb-16">
             <p className="text-sm font-semibold og-gradient-text tracking-widest uppercase mb-3">Features</p>
             <h2 className="text-4xl font-bold text-white">Built for the decentralized era</h2>
@@ -135,7 +146,12 @@ export default function Landing() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {FEATURES.map(({ icon, title, desc }) => (
               <div key={title} className="og-card rounded-2xl p-6 group cursor-default">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600/20 to-cyan-500/20 border border-white/10 flex items-center justify-center text-xl mb-4 group-hover:border-violet-500/40 transition">
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl mb-4 transition group-hover:scale-110"
+                  style={{
+                    background: "linear-gradient(135deg, rgba(124,58,237,0.3), rgba(6,182,212,0.2))",
+                    border: "1px solid rgba(139,92,246,0.35)",
+                    boxShadow: "0 0 16px rgba(124,58,237,0.2)"
+                  }}>
                   {icon}
                 </div>
                 <h3 className="text-white font-semibold mb-2">{title}</h3>
@@ -147,21 +163,27 @@ export default function Landing() {
       </section>
 
       {/* How It Works */}
-      <section className="relative py-28">
-        <div className="og-glow-cyan" style={{ top: "30%", left: "-5%", opacity: 0.4 }} />
-        <div className="max-w-4xl mx-auto px-6">
+      <section className="relative py-28 overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none" style={{
+          background: "radial-gradient(ellipse 70% 60% at 50% 50%, rgba(6,182,212,0.08) 0%, transparent 70%)"
+        }} />
+        <div className="og-glow-cyan" style={{ top: "20%", left: "-5%", opacity: 0.7 }} />
+        <div className="og-glow-purple" style={{ bottom: "10%", right: "-5%", opacity: 0.5 }} />
+        <div className="max-w-4xl mx-auto px-6 relative z-10">
           <div className="text-center mb-16">
             <p className="text-sm font-semibold og-gradient-text tracking-widest uppercase mb-3">Flow</p>
             <h2 className="text-4xl font-bold text-white">How it works</h2>
           </div>
           <div className="space-y-3">
-            {FLOW.map(({ step, actor, action }, i) => (
-              <div key={step} className="og-card rounded-2xl p-6 flex items-start gap-5">
-                <div className="shrink-0 text-xs font-bold og-gradient-text tracking-wider pt-0.5">{step}</div>
-                <div className="w-px self-stretch bg-gradient-to-b from-violet-500/30 to-transparent" />
+            {FLOW.map(({ step, actor, action }) => (
+              <div key={step} className="og-card rounded-2xl p-6 flex items-start gap-5 group"
+                style={{ background: "rgba(124,58,237,0.08)" }}>
+                <div className="shrink-0 og-gradient-text text-lg font-black tracking-wider pt-0.5 group-hover:scale-110 transition">{step}</div>
+                <div className="w-px self-stretch"
+                  style={{ background: "linear-gradient(to bottom, rgba(192,132,252,0.5), transparent)" }} />
                 <div>
-                  <p className="text-sm font-semibold text-white/60 mb-0.5">{actor}</p>
-                  <p className="text-white/80 text-sm leading-relaxed">{action}</p>
+                  <p className="text-sm font-semibold mb-0.5" style={{ color: "#c084fc" }}>{actor}</p>
+                  <p className="text-white/70 text-sm leading-relaxed">{action}</p>
                 </div>
               </div>
             ))}
@@ -171,14 +193,21 @@ export default function Landing() {
 
       {/* CTA Banner */}
       <section className="py-24 px-6">
-        <div className="max-w-3xl mx-auto text-center og-card rounded-3xl p-12 relative overflow-hidden">
-          <div className="og-glow-purple" style={{ top: "-30%", left: "10%", width: "300px", height: "300px", opacity: 0.5 }} />
-          <div className="og-glow-cyan" style={{ bottom: "-30%", right: "10%", width: "250px", height: "250px", opacity: 0.4 }} />
+        <div className="max-w-3xl mx-auto text-center rounded-3xl p-12 relative overflow-hidden"
+          style={{
+            background: "linear-gradient(135deg, rgba(88,28,135,0.5) 0%, rgba(30,5,69,0.7) 40%, rgba(7,34,68,0.6) 100%)",
+            border: "1px solid rgba(139,92,246,0.3)",
+            boxShadow: "0 0 60px rgba(124,58,237,0.2), 0 0 120px rgba(6,182,212,0.08), inset 0 1px 0 rgba(192,132,252,0.15)"
+          }}>
+          <div className="og-glow-purple" style={{ top: "-40%", left: "5%", width: "400px", height: "400px", opacity: 0.7 }} />
+          <div className="og-glow-cyan" style={{ bottom: "-40%", right: "5%", width: "350px", height: "350px", opacity: 0.5 }} />
+          {/* Grid overlay */}
+          <div className="absolute inset-0 og-grid-bg opacity-30 rounded-3xl" />
           <div className="relative z-10">
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
               Ready to automate payroll<br />on <span className="og-gradient-text">0G</span>?
             </h2>
-            <p className="text-white/40 mb-8">
+            <p className="text-white/50 mb-8">
               Deploy the contract, register your team, and let the AI agent handle the rest.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -199,7 +228,7 @@ export default function Landing() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-white/[0.06] py-10 px-6">
+      <footer className="py-10 px-6" style={{ borderTop: "1px solid rgba(139,92,246,0.15)" }}>
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-white/30">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded og-btn-primary flex items-center justify-center text-xs font-bold">Ø</div>
