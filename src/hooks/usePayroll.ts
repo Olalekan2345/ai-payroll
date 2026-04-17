@@ -17,9 +17,6 @@ export function useEmployeeList() {
   });
 }
 
-// keccak256("EMPLOYER_ROLE")
-const EMPLOYER_ROLE_HASH = "0x8b8c4920b8f2d5d4c5f8d6f8e5f4d3c2b1a0908070605040302010099887766" as `0x${string}`;
-
 export function useIsEmployer(address?: `0x${string}`) {
   // Read the EMPLOYER_ROLE bytes32 from the contract first
   const { data: employerRole } = useReadContract({
