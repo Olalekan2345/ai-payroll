@@ -23,9 +23,13 @@ async function main() {
     throw new Error("Deployer wallet has 0 balance. Get testnet tokens at https://faucet.0g.ai");
   }
 
+  // Use factory address from env if available, otherwise zero address (no factory integration)
+  const factoryAddress = process.env.NEXT_PUBLIC_FACTORY_ADDRESS || "0x0000000000000000000000000000000000000000";
+  console.log("Factory address:", factoryAddress);
+
   const PayrollManager = await ethers.getContractFactory("PayrollManager");
   console.log("Deploying PayrollManager…");
-  const payroll = await PayrollManager.deploy(deployer.address);
+  const payroll = await PayrollManager.deploy(deployer.address, factoryAddress);
   await payroll.waitForDeployment();
 
   const address = await payroll.getAddress();
