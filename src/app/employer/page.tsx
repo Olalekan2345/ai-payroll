@@ -12,7 +12,7 @@ import ClockManagement from "@/components/employer/ClockManagement";
 import PayrollPool from "@/components/employer/PayrollPool";
 import TxStatus from "@/components/shared/TxStatus";
 import ThemeToggle from "@/components/shared/ThemeToggle";
-import { FACTORY_DEPLOYED } from "@/lib/config";
+import { FACTORY_DEPLOYED, CONTRACT_ADDRESS, ZERO_ADDRESS } from "@/lib/config";
 import {
   useMyPayrollContract,
   useIsEmployeeAnywhere,
@@ -228,8 +228,11 @@ export default function EmployerDashboard() {
     );
   }
 
-  // Contract address to use: either from factory or env fallback
-  const contractAddress = (hasContract ? myContract : undefined) as `0x${string}` | undefined;
+  // Contract address: factory contract → env CONTRACT_ADDRESS fallback → undefined
+  const legacyContract = CONTRACT_ADDRESS !== ZERO_ADDRESS ? CONTRACT_ADDRESS : undefined;
+  const contractAddress = (
+    FACTORY_DEPLOYED ? (hasContract ? myContract : undefined) : legacyContract
+  ) as `0x${string}` | undefined;
 
   // ── Full dashboard ──
   return (
@@ -269,16 +272,7 @@ export default function EmployerDashboard() {
         </div>
       </header>
 
-      {/* Factory notice */}
-      {!FACTORY_DEPLOYED && (
-        <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 text-center text-xs text-amber-400">
-          ⚠️ Factory not deployed. Run{" "}
-          <code className="bg-amber-500/10 px-1 rounded font-mono">npx hardhat run scripts/deployFactory.cjs --network 0g-galileo</code>
-          {" "}and set <code className="bg-amber-500/10 px-1 rounded font-mono">NEXT_PUBLIC_FACTORY_ADDRESS</code> in .env.local
-        </div>
-      )}
-
-      <div className="max-w-7xl mx-auto px-4 py-6">
+<div className="max-w-7xl mx-auto px-4 py-6">
         {/* Tabs */}
         <div className="flex gap-1 og-card p-1 rounded-xl mb-6 overflow-x-auto">
           {tabs.map((tab) => (
