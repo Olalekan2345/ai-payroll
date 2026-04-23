@@ -4,23 +4,39 @@ import { useState } from "react";
 import { useAccount } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useRouter } from "next/navigation";
-import { useIsEmployee, useIsClockedIn, useWeeklyHours, useLastClockIn } from "@/hooks/usePayroll";
+import { useIsClockedIn, useWeeklyHours, useLastClockIn } from "@/hooks/usePayroll";
+import { useEmployeeContract, isZeroAddress } from "@/hooks/useFactory";
 import { getCurrentWeekNumber } from "@/lib/storage";
 import MyAttendance from "@/components/employee/MyAttendance";
 import PaymentHistory from "@/components/employee/PaymentHistory";
-import { CONTRACT_ADDRESS } from "@/lib/config";
+import { CONTRACT_ADDRESS, FACTORY_DEPLOYED } from "@/lib/config";
 import ThemeToggle from "@/components/shared/ThemeToggle";
 
 type Tab = "attendance" | "payments";
 
 export default function EmployeeDashboard() {
   const { address, isConnected } = useAccount();
-  const { data: isEmployee, isLoading: checkingRole } = useIsEmployee(address);
-  const { data: isClockedIn } = useIsClockedIn(address);
-  const { data: weeklyHours } = useWeeklyHours(address, getCurrentWeekNumber());
-  const { data: lastClockIn } = useLastClockIn(address);
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("attendance");
+
+  // Find which PayrollManager this employee belongs to
+  const { data: employeeContractRaw, isLoading: findingContract } = useEmployeeContract(address);
+  const detectedContract = employeeContractRaw as `0x${string}` | undefined;
+
+  // Use factory-detected contract if available, otherwise fall back to env var
+  const contractAddress: `0x${string}` | undefined =
+    !isZeroAddress(detectedContract)
+      ? detectedContract
+      : FACTORY_DEPLOYED
+        ? undefined  // factory deployed but not registered
+        : (CONTRACT_ADDRESS !== "0x0000000000000000000000000000000000000000" ? CONTRACT_ADDRESS : undefined);
+
+  const isRegistered = !!contractAddress;
+
+  // Chain reads — all scoped to their specific contract
+  const { data: isClockedIn } = useIsClockedIn(address, contractAddress);
+  const { data: weeklyHours } = useWeeklyHours(address, getCurrentWeekNumber(), contractAddress);
+  const { data: lastClockIn } = useLastClockIn(address, contractAddress);
 
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: "attendance", label: "My Hours", icon: "📊" },
@@ -31,7 +47,7 @@ export default function EmployeeDashboard() {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4 og-grid-bg">
         <div className="og-glow-purple" style={{ top: "20%", left: "20%", opacity: 0.5 }} />
-        <div className="og-glow-cyan" style={{ bottom: "20%", right: "20%", opacity: 0.4 }} />
+        <div className="og-glow-pink" style={{ bottom: "20%", right: "20%", opacity: 0.4 }} />
         <div className="relative z-10 text-center space-y-6">
           <div className="text-5xl">👷</div>
           <h1 className="text-3xl font-bold text-white">Employee Dashboard</h1>
@@ -42,23 +58,25 @@ export default function EmployeeDashboard() {
     );
   }
 
-  if (checkingRole) {
+  if (FACTORY_DEPLOYED && findingContract) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="og-gradient-text animate-pulse text-sm font-medium">Verifying employee status…</div>
+        <div className="og-gradient-text animate-pulse text-sm font-medium">Looking up your payroll contract…</div>
       </div>
     );
   }
 
-  if (CONTRACT_ADDRESS !== "0x0000000000000000000000000000000000000000" && isEmployee === false) {
+  if (!isRegistered) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4 og-grid-bg">
         <div className="og-glow-purple" style={{ top: "20%", right: "20%", opacity: 0.4 }} />
         <div className="relative z-10 text-center space-y-4 max-w-sm">
           <div className="text-5xl">🚫</div>
           <h2 className="text-xl font-bold text-white">Not Registered</h2>
-          <p className="text-white/40 text-sm">
-            Wallet {address?.slice(0, 6)}…{address?.slice(-4)} is not registered as an employee. Contact your employer.
+          <p className="text-white/40 text-sm leading-relaxed">
+            Wallet{" "}
+            <span className="font-mono text-white/60">{address?.slice(0, 6)}…{address?.slice(-4)}</span>{" "}
+            is not registered as an employee. Contact your employer and ask them to add you from their dashboard.
           </p>
           <button onClick={() => router.push("/")} className="og-gradient-text hover:opacity-80 text-sm transition">
             ← Go Back
@@ -69,7 +87,7 @@ export default function EmployeeDashboard() {
   }
 
   const hours = weeklyHours ? Number((weeklyHours as any)[1]) : 0;
-  const lastIn = lastClockIn ? new Date(Number(lastClockIn) * 1000) : null;
+  const lastIn = lastClockIn && Number(lastClockIn) > 0 ? new Date(Number(lastClockIn) * 1000) : null;
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -97,7 +115,7 @@ export default function EmployeeDashboard() {
         </div>
       </header>
 
-      {/* Quick Stats Bar */}
+      {/* Stats bar */}
       <div className="border-b border-white/[0.06] bg-black/40 backdrop-blur">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-6 text-sm overflow-x-auto">
           <div className="flex items-center gap-2 whitespace-nowrap">
@@ -110,7 +128,7 @@ export default function EmployeeDashboard() {
           </div>
           <div className="flex items-center gap-2 whitespace-nowrap">
             <span className="text-white/40">Next payment:</span>
-            <span className="text-cyan-400 font-semibold">Saturday</span>
+            <span className="font-semibold og-gradient-text">Saturday</span>
           </div>
           <div className="flex items-center gap-2 whitespace-nowrap text-xs text-white/20">
             <span className="font-mono">{address?.slice(0, 6)}…{address?.slice(-4)}</span>
@@ -119,10 +137,12 @@ export default function EmployeeDashboard() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-5">
-
-        {/* Clock Status Card */}
+        {/* Clock status */}
         <div className="og-card rounded-2xl p-5 flex flex-wrap items-center gap-5"
-          style={{ background: isClockedIn ? "rgba(16,185,129,0.06)" : "rgba(124,58,237,0.07)", borderColor: isClockedIn ? "rgba(16,185,129,0.25)" : "rgba(139,92,246,0.2)" }}>
+          style={{
+            background: isClockedIn ? "rgba(16,185,129,0.06)" : "rgba(165,64,240,0.07)",
+            borderColor: isClockedIn ? "rgba(16,185,129,0.25)" : "rgba(165,64,240,0.2)",
+          }}>
           <div className="flex items-center gap-3">
             <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${isClockedIn ? "og-badge-success" : "og-badge-neutral"}`}>
               {isClockedIn ? "🟢" : "⚫"}
@@ -131,7 +151,9 @@ export default function EmployeeDashboard() {
               <p className="text-white font-semibold">{isClockedIn ? "Currently Working" : "Not Clocked In"}</p>
               <p className="text-xs text-white/40 mt-0.5">
                 {isClockedIn
-                  ? lastIn ? `Clocked in at ${lastIn.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} on ${lastIn.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })}` : "Clocked in"
+                  ? lastIn
+                    ? `Clocked in at ${lastIn.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} on ${lastIn.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })}`
+                    : "Clocked in"
                   : "Your employer manages clock in/out"}
               </p>
             </div>
@@ -158,9 +180,8 @@ export default function EmployeeDashboard() {
           ))}
         </div>
 
-        {/* Tab Content */}
-        {activeTab === "attendance" && <MyAttendance />}
-        {activeTab === "payments" && <PaymentHistory />}
+        {activeTab === "attendance" && <MyAttendance contractAddress={contractAddress} />}
+        {activeTab === "payments" && <PaymentHistory contractAddress={contractAddress} />}
       </div>
     </div>
   );

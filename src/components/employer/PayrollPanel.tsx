@@ -15,13 +15,13 @@ import TxStatus from "@/components/shared/TxStatus";
 import StatusBadge from "@/components/shared/StatusBadge";
 import { formatEther } from "viem";
 
-export default function PayrollPanel() {
+export default function PayrollPanel({ contractAddress }: { contractAddress?: `0x${string}` }) {
   const [insight, setInsight] = useState<AgentInsight | null>(null);
   const [agentLog, setAgentLog] = useState<string[]>([]);
   const [agentRunning, setAgentRunning] = useState(false);
-  const { data: employees } = useEmployeeList();
-  const { data: contractBalance } = useContractBalance();
-  const { executePayroll, isPending, isConfirming, isSuccess, error, hash } = useExecutePayroll();
+  const { data: employees } = useEmployeeList(contractAddress);
+  const { data: contractBalance } = useContractBalance(contractAddress);
+  const { executePayroll, isPending, isConfirming, isSuccess, error, hash } = useExecutePayroll(contractAddress);
   const weekNumber = getCurrentWeekNumber();
 
   useEffect(() => {
@@ -88,10 +88,10 @@ export default function PayrollPanel() {
             <p className="text-sm text-white/40">Contract Balance</p>
             <p className="text-2xl font-bold text-white mt-1">{balanceEth} <span className="og-gradient-text">A0GI</span></p>
             <a
-              href={`https://chainscan-galileo.0g.ai/address/${process.env.NEXT_PUBLIC_CONTRACT_ADDRESS}`}
+              href={`https://chainscan-galileo.0g.ai/address/${contractAddress ?? process.env.NEXT_PUBLIC_CONTRACT_ADDRESS}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-cyan-400 hover:text-cyan-300 hover:underline mt-0.5 inline-block transition"
+              className="text-xs og-gradient-text hover:opacity-80 hover:underline mt-0.5 inline-block transition"
             >
               View contract ↗
             </a>

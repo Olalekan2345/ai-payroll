@@ -9,12 +9,13 @@ interface Props {
   employee: { wallet: string; name: string; hourlyRateWei: bigint };
   onClose: () => void;
   onSuccess: () => void;
+  contractAddress?: `0x${string}`;
 }
 
-export default function UpdateSalaryModal({ employee, onClose, onSuccess }: Props) {
+export default function UpdateSalaryModal({ employee, onClose, onSuccess, contractAddress }: Props) {
   const currentRate = parseFloat(formatEther(employee.hourlyRateWei));
   const [rate, setRate] = useState(currentRate.toString());
-  const { updateRate, isPending, isConfirming, isSuccess, error, hash } = useUpdateSalary();
+  const { updateRate, isPending, isConfirming, isSuccess, error, hash } = useUpdateSalary(contractAddress);
 
   useEffect(() => {
     if (isSuccess) {

@@ -56,18 +56,18 @@ export default function Landing() {
       <section className="relative min-h-screen flex items-center justify-center pt-20 og-grid-bg overflow-hidden">
         {/* Deep gradient mesh */}
         <div className="absolute inset-0 pointer-events-none" style={{
-          background: "radial-gradient(ellipse 80% 70% at 50% 0%, rgba(109,40,217,0.35) 0%, transparent 65%), radial-gradient(ellipse 60% 50% at 80% 60%, rgba(6,182,212,0.18) 0%, transparent 60%)"
+          background: "radial-gradient(ellipse 80% 70% at 50% 0%, rgba(165,64,240,0.28) 0%, transparent 65%), radial-gradient(ellipse 60% 50% at 80% 60%, rgba(246,51,154,0.15) 0%, transparent 60%)"
         }} />
         {/* Glow blobs */}
         <div className="og-glow-purple og-orb" style={{ top: "5%", left: "3%", opacity: 1 }} />
-        <div className="og-glow-cyan og-orb" style={{ top: "15%", right: "3%", animationDelay: "3s", opacity: 0.9 }} />
+        <div className="og-glow-pink og-orb" style={{ top: "15%", right: "3%", animationDelay: "3s", opacity: 0.9 }} />
         <div className="og-glow-purple" style={{ bottom: "5%", right: "15%", opacity: 0.5, width: "500px", height: "500px" }} />
 
         <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full og-card text-sm mb-8"
             style={{ background: "rgba(124,58,237,0.12)", borderColor: "rgba(192,132,252,0.3)" }}>
-            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 og-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full og-pulse" style={{ background: "#a540f0" }} />
             <span className="text-white/60">Powered by</span>
             <span className="og-gradient-text font-semibold">0G Labs</span>
             <span className="text-white/30">·</span>
@@ -134,7 +134,7 @@ export default function Landing() {
           background: "linear-gradient(180deg, transparent 0%, rgba(88,28,135,0.15) 30%, rgba(88,28,135,0.2) 60%, transparent 100%)"
         }} />
         <div className="og-glow-purple" style={{ top: "10%", right: "-5%", opacity: 0.8 }} />
-        <div className="og-glow-cyan" style={{ bottom: "10%", left: "-5%", opacity: 0.5 }} />
+        <div className="og-glow-pink" style={{ bottom: "10%", left: "-5%", opacity: 0.5 }} />
         <div className="max-w-7xl mx-auto px-6 relative z-10">
           <div className="text-center mb-16">
             <p className="text-sm font-semibold og-gradient-text tracking-widest uppercase mb-3">Features</p>
@@ -148,9 +148,9 @@ export default function Landing() {
               <div key={title} className="og-card rounded-2xl p-6 group cursor-default">
                 <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl mb-4 transition group-hover:scale-110"
                   style={{
-                    background: "linear-gradient(135deg, rgba(124,58,237,0.3), rgba(6,182,212,0.2))",
-                    border: "1px solid rgba(139,92,246,0.35)",
-                    boxShadow: "0 0 16px rgba(124,58,237,0.2)"
+                    background: "linear-gradient(135deg, rgba(165,64,240,0.25), rgba(246,51,154,0.15))",
+                    border: "1px solid rgba(165,64,240,0.35)",
+                    boxShadow: "0 0 16px rgba(165,64,240,0.2)"
                   }}>
                   {icon}
                 </div>
@@ -165,9 +165,9 @@ export default function Landing() {
       {/* How It Works */}
       <section className="relative py-28 overflow-hidden">
         <div className="absolute inset-0 pointer-events-none" style={{
-          background: "radial-gradient(ellipse 70% 60% at 50% 50%, rgba(6,182,212,0.08) 0%, transparent 70%)"
+          background: "radial-gradient(ellipse 70% 60% at 50% 50%, rgba(246,51,154,0.08) 0%, transparent 70%)"
         }} />
-        <div className="og-glow-cyan" style={{ top: "20%", left: "-5%", opacity: 0.7 }} />
+        <div className="og-glow-pink" style={{ top: "20%", left: "-5%", opacity: 0.7 }} />
         <div className="og-glow-purple" style={{ bottom: "10%", right: "-5%", opacity: 0.5 }} />
         <div className="max-w-4xl mx-auto px-6 relative z-10">
           <div className="text-center mb-16">
@@ -197,10 +197,10 @@ export default function Landing() {
           style={{
             background: "linear-gradient(135deg, rgba(88,28,135,0.5) 0%, rgba(30,5,69,0.7) 40%, rgba(7,34,68,0.6) 100%)",
             border: "1px solid rgba(139,92,246,0.3)",
-            boxShadow: "0 0 60px rgba(124,58,237,0.2), 0 0 120px rgba(6,182,212,0.08), inset 0 1px 0 rgba(192,132,252,0.15)"
+            boxShadow: "0 0 60px rgba(165,64,240,0.2), 0 0 120px rgba(246,51,154,0.08), inset 0 1px 0 rgba(192,132,252,0.15)"
           }}>
           <div className="og-glow-purple" style={{ top: "-40%", left: "5%", width: "400px", height: "400px", opacity: 0.7 }} />
-          <div className="og-glow-cyan" style={{ bottom: "-40%", right: "5%", width: "350px", height: "350px", opacity: 0.5 }} />
+          <div className="og-glow-pink" style={{ bottom: "-40%", right: "5%", width: "350px", height: "350px", opacity: 0.5 }} />
           {/* Grid overlay */}
           <div className="absolute inset-0 og-grid-bg opacity-30 rounded-3xl" />
           <div className="relative z-10">

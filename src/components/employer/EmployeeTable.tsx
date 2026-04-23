@@ -7,9 +7,9 @@ import StatusBadge from "@/components/shared/StatusBadge";
 import UpdateSalaryModal from "@/components/employer/UpdateSalaryModal";
 import { formatEther } from "viem";
 
-function EmployeeRow({ emp, onEditRate }: { emp: any; onEditRate: (emp: any) => void }) {
+function EmployeeRow({ emp, onEditRate, contractAddress }: { emp: any; onEditRate: (emp: any) => void; contractAddress?: `0x${string}` }) {
   const weekNumber = getWeekNumber(new Date());
-  const { data: weeklyHours } = useWeeklyHours(emp.wallet as `0x${string}`, weekNumber);
+  const { data: weeklyHours } = useWeeklyHours(emp.wallet as `0x${string}`, weekNumber, contractAddress);
   const hours = weeklyHours ? Number(weeklyHours[1]) : 0;
 
   return (
@@ -46,7 +46,7 @@ function EmployeeRow({ emp, onEditRate }: { emp: any; onEditRate: (emp: any) => 
           href={`https://chainscan-galileo.0g.ai/address/${emp.wallet}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-cyan-400 hover:text-cyan-300 text-xs transition"
+          className="og-gradient-text text-xs transition hover:opacity-80"
         >
           View ↗
         </a>
@@ -55,8 +55,8 @@ function EmployeeRow({ emp, onEditRate }: { emp: any; onEditRate: (emp: any) => 
   );
 }
 
-export default function EmployeeTable({ refresh }: { refresh?: number }) {
-  const { data: employees, isLoading, refetch } = useEmployeeList();
+export default function EmployeeTable({ refresh, contractAddress }: { refresh?: number; contractAddress?: `0x${string}` }) {
+  const { data: employees, isLoading, refetch } = useEmployeeList(contractAddress);
   const [editingEmp, setEditingEmp] = useState<any | null>(null);
 
   if (isLoading) {
@@ -102,7 +102,7 @@ export default function EmployeeTable({ refresh }: { refresh?: number }) {
               </thead>
               <tbody>
                 {list.map((emp: any) => (
-                  <EmployeeRow key={emp.wallet} emp={emp} onEditRate={setEditingEmp} />
+                  <EmployeeRow key={emp.wallet} emp={emp} onEditRate={setEditingEmp} contractAddress={contractAddress} />
                 ))}
               </tbody>
             </table>
@@ -115,6 +115,7 @@ export default function EmployeeTable({ refresh }: { refresh?: number }) {
           employee={editingEmp}
           onClose={() => setEditingEmp(null)}
           onSuccess={() => { refetch(); setEditingEmp(null); }}
+          contractAddress={contractAddress}
         />
       )}
     </>

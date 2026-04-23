@@ -1,23 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useRouter } from "next/navigation";
-import { useIsEmployer } from "@/hooks/usePayroll";
 import RegisterEmployee from "@/components/employer/RegisterEmployee";
 import EmployeeTable from "@/components/employer/EmployeeTable";
 import AttendanceLogs from "@/components/employer/AttendanceLogs";
 import PayrollPanel from "@/components/employer/PayrollPanel";
 import ClockManagement from "@/components/employer/ClockManagement";
-import { CONTRACT_ADDRESS } from "@/lib/config";
+import PayrollPool from "@/components/employer/PayrollPool";
+import TxStatus from "@/components/shared/TxStatus";
 import ThemeToggle from "@/components/shared/ThemeToggle";
+import { FACTORY_DEPLOYED } from "@/lib/config";
+import {
+  useMyPayrollContract,
+  useIsEmployeeAnywhere,
+  useCreatePayroll,
+  isZeroAddress,
+} from "@/hooks/useFactory";
 
 type Tab = "overview" | "register" | "clock" | "attendance" | "payroll";
 
 function ShareEmployeeLink() {
   const [copied, setCopied] = useState(false);
-
   const handleCopy = () => {
     const url = `${window.location.origin}/employee`;
     navigator.clipboard.writeText(url).then(() => {
@@ -25,31 +31,115 @@ function ShareEmployeeLink() {
       setTimeout(() => setCopied(false), 2000);
     });
   };
-
   return (
     <button
       onClick={handleCopy}
-      className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 ${
-        copied
-          ? "og-badge-success"
-          : "og-btn-ghost"
-      }`}
+      className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 ${copied ? "og-badge-success" : "og-btn-ghost"}`}
     >
-      {copied ? (
-        <>✅ Copied!</>
-      ) : (
-        <>🔗 Share Employee Link</>
-      )}
+      {copied ? <>✅ Copied!</> : <>🔗 Share Employee Link</>}
     </button>
   );
 }
 
+// ── Deploy screen shown when employer has no contract yet ──────────────────────
+function DeployScreen({ address, onDeployed }: { address: `0x${string}`; onDeployed: () => void }) {
+  const { createPayroll, isPending, isConfirming, isSuccess, error, hash } = useCreatePayroll();
+
+  useEffect(() => {
+    if (isSuccess) {
+      // Give the chain a moment, then ask parent to refetch
+      const t = setTimeout(onDeployed, 4000);
+      return () => clearTimeout(t);
+    }
+  }, [isSuccess, onDeployed]);
+
+  return (
+    <div className="min-h-screen bg-black flex items-center justify-center p-4 og-grid-bg">
+      <div className="og-glow-purple" style={{ top: "15%", left: "10%", opacity: 0.6 }} />
+      <div className="og-glow-pink" style={{ bottom: "15%", right: "10%", opacity: 0.5 }} />
+
+      <div className="relative z-10 max-w-lg w-full">
+        <div className="og-card rounded-3xl p-8 text-center space-y-6"
+          style={{ background: "rgba(22,22,22,0.95)", border: "1px solid rgba(165,64,240,0.3)", boxShadow: "0 0 60px rgba(165,64,240,0.15)" }}>
+
+          <div className="w-16 h-16 rounded-2xl og-btn-primary flex items-center justify-center text-3xl mx-auto">
+            🏭
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-white mb-2">Deploy Your Payroll Contract</h1>
+            <p className="text-white/50 text-sm leading-relaxed">
+              Your wallet doesn&apos;t have a payroll contract yet. Deploy one to start managing employees, tracking attendance, and running payroll — all on-chain.
+            </p>
+          </div>
+
+          {/* Info pills */}
+          <div className="grid grid-cols-2 gap-3 text-left">
+            {[
+              { icon: "⛓️", label: "On-chain RBAC", sub: "Role-based access control" },
+              { icon: "👥", label: "Your employees", sub: "Isolated to your contract" },
+              { icon: "💸", label: "You control payroll", sub: "Execute when you choose" },
+              { icon: "🔒", label: "Exclusive access", sub: "Only your wallet can manage" },
+            ].map(({ icon, label, sub }) => (
+              <div key={label} className="og-card rounded-xl p-3 flex items-start gap-2"
+                style={{ background: "rgba(165,64,240,0.06)", borderColor: "rgba(165,64,240,0.2)" }}>
+                <span className="text-lg">{icon}</span>
+                <div>
+                  <p className="text-white text-xs font-semibold">{label}</p>
+                  <p className="text-white/40 text-xs">{sub}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Wallet info */}
+          <div className="og-card rounded-xl px-4 py-2.5 flex items-center justify-between"
+            style={{ background: "rgba(255,255,255,0.03)" }}>
+            <span className="text-white/40 text-xs">Deploying from</span>
+            <span className="text-white/70 font-mono text-xs">{address.slice(0, 8)}…{address.slice(-6)}</span>
+          </div>
+
+          <button
+            onClick={createPayroll}
+            disabled={isPending || isConfirming || isSuccess}
+            className="og-btn-primary w-full py-3.5 rounded-xl font-semibold text-base"
+          >
+            {isPending ? "Confirm in wallet…" : isConfirming ? "Deploying contract…" : isSuccess ? "✅ Deployed!" : "🚀 Deploy My Payroll Contract"}
+          </button>
+
+          <TxStatus hash={hash} isPending={isPending} isConfirming={isConfirming} isSuccess={isSuccess} error={error as Error} label="Contract deployment" />
+
+          {isSuccess && (
+            <p className="text-white/40 text-sm animate-pulse">Refreshing your dashboard…</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main dashboard ─────────────────────────────────────────────────────────────
 export default function EmployerDashboard() {
   const { address, isConnected } = useAccount();
-  const { data: isEmployer, isLoading: checkingRole } = useIsEmployer(address);
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [waitingForDeploy, setWaitingForDeploy] = useState(false);
+
+  // Factory queries
+  const {
+    data: myContractRaw,
+    isLoading: loadingContract,
+    refetch: refetchContract,
+  } = useMyPayrollContract(address);
+
+  const {
+    data: isEmployeeAnywhere,
+    isLoading: loadingEmployeeCheck,
+  } = useIsEmployeeAnywhere(address);
+
+  // Resolve contract address
+  const myContract = myContractRaw as `0x${string}` | undefined;
+  const hasContract = !isZeroAddress(myContract);
 
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: "overview", label: "Overview", icon: "🏠" },
@@ -59,52 +149,49 @@ export default function EmployerDashboard() {
     { id: "payroll", label: "Payroll & AI", icon: "🤖" },
   ];
 
+  // ── Not connected ──
   if (!isConnected) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4 og-grid-bg">
         <div className="og-glow-purple" style={{ top: "20%", left: "20%", opacity: 0.5 }} />
-        <div className="og-glow-cyan" style={{ bottom: "20%", right: "20%", opacity: 0.4 }} />
+        <div className="og-glow-pink" style={{ bottom: "20%", right: "20%", opacity: 0.4 }} />
         <div className="relative z-10 text-center space-y-6">
           <div className="text-5xl">👨‍💼</div>
           <h1 className="text-3xl font-bold text-white">Employer Dashboard</h1>
-          <p className="text-white/40">Connect your admin wallet to manage payroll</p>
+          <p className="text-white/40">Connect your wallet to manage payroll</p>
           <ConnectButton />
         </div>
       </div>
     );
   }
 
-  if (checkingRole) {
+  // ── Checking factory ──
+  if (FACTORY_DEPLOYED && (loadingContract || loadingEmployeeCheck || waitingForDeploy)) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="og-gradient-text animate-pulse text-sm font-medium">Verifying employer access…</div>
+        <div className="og-gradient-text animate-pulse text-sm font-medium">Checking your payroll contract…</div>
       </div>
     );
   }
 
-  if (CONTRACT_ADDRESS !== "0x0000000000000000000000000000000000000000" && isEmployer === false) {
+  // ── Blocked: already an employee somewhere ──
+  if (FACTORY_DEPLOYED && isEmployeeAnywhere === true) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4 og-grid-bg">
         <div className="og-glow-purple" style={{ top: "20%", right: "20%", opacity: 0.5 }} />
-        <div className="og-glow-cyan" style={{ bottom: "20%", left: "20%", opacity: 0.3 }} />
         <div className="relative z-10 text-center space-y-5 max-w-sm">
-          <div className="text-5xl">🔒</div>
+          <div className="text-5xl">🚫</div>
           <h2 className="text-2xl font-bold text-white">Access Denied</h2>
           <p className="text-white/40 text-sm leading-relaxed">
-            Wallet <span className="font-mono text-white/60">{address?.slice(0, 6)}…{address?.slice(-4)}</span> does not have employer privileges.
-            <br />Only the contract owner can access this dashboard.
+            Wallet{" "}
+            <span className="font-mono text-white/60">{address?.slice(0, 6)}…{address?.slice(-4)}</span>{" "}
+            is registered as an employee under another employer. Employers and employees must be separate wallets.
           </p>
           <div className="flex gap-3 justify-center">
-            <button
-              onClick={() => router.push("/employee")}
-              className="og-btn-ghost px-5 py-2.5 rounded-xl text-sm font-medium"
-            >
+            <button onClick={() => router.push("/employee")} className="og-btn-ghost px-5 py-2.5 rounded-xl text-sm font-medium">
               Go to Employee Dashboard
             </button>
-            <button
-              onClick={() => router.push("/")}
-              className="og-btn-primary px-5 py-2.5 rounded-xl text-sm font-semibold"
-            >
+            <button onClick={() => router.push("/")} className="og-btn-primary px-5 py-2.5 rounded-xl text-sm font-semibold">
               ← Home
             </button>
           </div>
@@ -113,18 +200,44 @@ export default function EmployerDashboard() {
     );
   }
 
+  // ── No contract yet — show deploy screen ──
+  if (FACTORY_DEPLOYED && !hasContract) {
+    return (
+      <div>
+        {/* Minimal nav */}
+        <nav className="og-nav fixed top-0 left-0 right-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button onClick={() => router.push("/")} className="text-white/40 hover:text-white transition text-sm">← Home</button>
+              <span className="text-white/10">|</span>
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg og-btn-primary flex items-center justify-center text-xs font-bold">Ø</div>
+                <span className="text-white font-semibold">Employer Dashboard</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <ThemeToggle />
+              <ConnectButton showBalance={false} chainStatus="icon" />
+            </div>
+          </div>
+        </nav>
+        <div className="pt-14">
+          <DeployScreen address={address!} onDeployed={() => { setWaitingForDeploy(true); refetchContract(); }} />
+        </div>
+      </div>
+    );
+  }
+
+  // Contract address to use: either from factory or env fallback
+  const contractAddress = (hasContract ? myContract : undefined) as `0x${string}` | undefined;
+
+  // ── Full dashboard ──
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Header */}
       <header className="og-nav sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.push("/")}
-              className="text-white/40 hover:text-white transition text-sm"
-            >
-              ← Home
-            </button>
+            <button onClick={() => router.push("/")} className="text-white/40 hover:text-white transition text-sm">← Home</button>
             <span className="text-white/10">|</span>
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg og-btn-primary flex items-center justify-center text-xs font-bold">Ø</div>
@@ -133,6 +246,17 @@ export default function EmployerDashboard() {
           </div>
           <div className="flex items-center gap-3">
             <ShareEmployeeLink />
+            {contractAddress && (
+              <a
+                href={`https://chainscan-galileo.0g.ai/address/${contractAddress}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden sm:flex items-center gap-1.5 og-btn-ghost text-xs px-3 py-1.5 rounded-xl"
+                title="View your payroll contract on explorer"
+              >
+                📄 My Contract
+              </a>
+            )}
             <div className="hidden sm:flex items-center gap-2 og-card px-3 py-1.5 rounded-lg">
               <span className="w-2 h-2 bg-emerald-400 rounded-full og-pulse" />
               <span className="text-xs text-white/60 font-mono">
@@ -145,12 +269,12 @@ export default function EmployerDashboard() {
         </div>
       </header>
 
-      {/* Contract notice */}
-      {CONTRACT_ADDRESS === "0x0000000000000000000000000000000000000000" && (
+      {/* Factory notice */}
+      {!FACTORY_DEPLOYED && (
         <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 text-center text-xs text-amber-400">
-          ⚠️ Contract not deployed yet. Run{" "}
-          <code className="bg-amber-500/10 px-1 rounded font-mono">npx hardhat run scripts/deploy.cjs --network 0g-galileo</code>{" "}
-          and set <code className="bg-amber-500/10 px-1 rounded font-mono">NEXT_PUBLIC_CONTRACT_ADDRESS</code> in .env.local
+          ⚠️ Factory not deployed. Run{" "}
+          <code className="bg-amber-500/10 px-1 rounded font-mono">npx hardhat run scripts/deployFactory.cjs --network 0g-galileo</code>
+          {" "}and set <code className="bg-amber-500/10 px-1 rounded font-mono">NEXT_PUBLIC_FACTORY_ADDRESS</code> in .env.local
         </div>
       )}
 
@@ -171,25 +295,34 @@ export default function EmployerDashboard() {
           ))}
         </div>
 
-        {/* Tab Content */}
         {activeTab === "overview" && (
           <div className="space-y-6">
+            {/* Top row: Register + Payroll Pool */}
             <div className="grid md:grid-cols-2 gap-6">
-              <RegisterEmployee onSuccess={() => { setRefreshKey((k) => k + 1); setActiveTab("overview"); }} />
-              <div className="og-card rounded-2xl p-6 space-y-4">
-                <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                  <span>🔗</span> 0G Network Info
-                </h2>
-                <div className="space-y-1 text-sm">
+              <RegisterEmployee
+                contractAddress={contractAddress}
+                onSuccess={() => { setRefreshKey((k) => k + 1); setActiveTab("overview"); }}
+              />
+              <PayrollPool contractAddress={contractAddress} />
+            </div>
+
+            {/* Network info row */}
+            <div className="og-card rounded-2xl p-5">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">🔗</span>
+                  <span className="text-white font-semibold text-sm">0G Galileo Testnet</span>
+                  <span className="og-badge-info text-xs px-2 py-0.5 rounded-full">Chain 16602</span>
+                </div>
+                <div className="flex flex-wrap gap-4 text-xs">
                   {[
-                    { label: "Network", value: "0G Galileo Testnet" },
-                    { label: "Chain ID", value: "16602" },
                     { label: "Currency", value: "A0GI" },
                     { label: "RPC", value: "evmrpc-testnet.0g.ai" },
+                    ...(contractAddress ? [{ label: "Contract", value: `${contractAddress.slice(0, 8)}…${contractAddress.slice(-6)}` }] : []),
                   ].map(({ label, value }) => (
-                    <div key={label} className="flex justify-between py-1.5 border-b border-white/[0.04] last:border-0">
-                      <span className="text-white/40">{label}</span>
-                      <span className="text-white/70 font-mono text-xs">{value}</span>
+                    <div key={label} className="flex items-center gap-1.5">
+                      <span className="text-white/30">{label}:</span>
+                      <span className="text-white/60 font-mono">{value}</span>
                     </div>
                   ))}
                 </div>
@@ -197,25 +330,29 @@ export default function EmployerDashboard() {
                   href="https://faucet.0g.ai"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="og-btn-ghost block text-center py-2 rounded-xl text-sm"
+                  className="og-btn-ghost px-4 py-1.5 rounded-xl text-xs"
                 >
-                  🚰 Get Testnet A0GI Tokens
+                  🚰 Get A0GI Tokens
                 </a>
               </div>
             </div>
-            <EmployeeTable refresh={refreshKey} />
+
+            <EmployeeTable refresh={refreshKey} contractAddress={contractAddress} />
           </div>
         )}
 
         {activeTab === "register" && (
           <div className="max-w-lg">
-            <RegisterEmployee onSuccess={() => { setRefreshKey((k) => k + 1); setActiveTab("overview"); }} />
+            <RegisterEmployee
+              contractAddress={contractAddress}
+              onSuccess={() => { setRefreshKey((k) => k + 1); setActiveTab("overview"); }}
+            />
           </div>
         )}
 
-        {activeTab === "clock" && <ClockManagement />}
+        {activeTab === "clock" && <ClockManagement contractAddress={contractAddress} />}
         {activeTab === "attendance" && <AttendanceLogs />}
-        {activeTab === "payroll" && <PayrollPanel />}
+        {activeTab === "payroll" && <PayrollPanel contractAddress={contractAddress} />}
       </div>
     </div>
   );

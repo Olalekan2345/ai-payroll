@@ -6,9 +6,9 @@ import { getCurrentWeekNumber, getWeekStart, getWeekEnd } from "@/lib/storage";
 import StatusBadge from "@/components/shared/StatusBadge";
 import { formatEther } from "viem";
 
-function WeekRecord({ weekNumber, address }: { weekNumber: number; address: `0x${string}` }) {
-  const { data: record } = usePayrollRecord(address, weekNumber);
-  const { data: hours } = useWeeklyHours(address, weekNumber);
+function WeekRecord({ weekNumber, address, contractAddress }: { weekNumber: number; address: `0x${string}`; contractAddress?: `0x${string}` }) {
+  const { data: record } = usePayrollRecord(address, weekNumber, contractAddress);
+  const { data: hours } = useWeeklyHours(address, weekNumber, contractAddress);
 
   const rec = record as any;
   const hrs = hours as any;
@@ -38,7 +38,7 @@ function WeekRecord({ weekNumber, address }: { weekNumber: number; address: `0x$
   );
 }
 
-export default function PaymentHistory() {
+export default function PaymentHistory({ contractAddress }: { contractAddress?: `0x${string}` }) {
   const { address } = useAccount();
   const currentWeek = getCurrentWeekNumber();
   const weeks = Array.from({ length: 6 }, (_, i) => currentWeek - i);
@@ -65,7 +65,7 @@ export default function PaymentHistory() {
           </thead>
           <tbody>
             {address && weeks.map((wk) => (
-              <WeekRecord key={wk} weekNumber={wk} address={address} />
+              <WeekRecord key={wk} weekNumber={wk} address={address} contractAddress={contractAddress} />
             ))}
           </tbody>
         </table>

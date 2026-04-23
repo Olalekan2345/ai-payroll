@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useEmployeeList, useIsClockedIn, useWeeklyHours,
   useLastClockIn, useClockInEmployee, useClockOutEmployee,
@@ -10,44 +11,48 @@ import StatusBadge from "@/components/shared/StatusBadge";
 import TxStatus from "@/components/shared/TxStatus";
 import { formatEther } from "viem";
 
-function EmployeeClockRow({ emp }: { emp: any }) {
-  const { data: isClockedIn, refetch } = useIsClockedIn(emp.wallet as `0x${string}`);
-  const { data: lastClockIn } = useLastClockIn(emp.wallet as `0x${string}`);
-  const { data: weeklyHours } = useWeeklyHours(emp.wallet as `0x${string}`, getCurrentWeekNumber());
+function EmployeeClockRow({ emp, contractAddress }: { emp: any; contractAddress?: `0x${string}` }) {
+  const queryClient = useQueryClient();
+  const { data: isClockedIn } = useIsClockedIn(emp.wallet as `0x${string}`, contractAddress);
+  const { data: lastClockIn } = useLastClockIn(emp.wallet as `0x${string}`, contractAddress);
+  const { data: weeklyHours } = useWeeklyHours(emp.wallet as `0x${string}`, getCurrentWeekNumber(), contractAddress);
 
   const {
     clockInEmp, isPending: inPending, isConfirming: inConfirming,
     isSuccess: inSuccess, error: inError, hash: inHash,
-  } = useClockInEmployee();
+  } = useClockInEmployee(contractAddress);
   const {
     clockOutEmp, isPending: outPending, isConfirming: outConfirming,
     isSuccess: outSuccess, error: outError, hash: outHash,
-  } = useClockOutEmployee();
+  } = useClockOutEmployee(contractAddress);
 
-  // After confirmed clock-in: log to 0G Storage and refetch
+  // After clock-in confirms: log to 0G Storage then invalidate all contract reads
   useEffect(() => {
-    if (inSuccess) {
-      const now = Math.floor(Date.now() / 1000);
-      appendClockEvent(emp.wallet, emp.name, {
-        employee: emp.wallet,
-        timestamp: now,
-        isClockIn: true,
-        weekNumber: getCurrentWeekNumber(),
-      } as import("@/types").ClockEvent).then(() => refetch());
-    }
+    if (!inSuccess) return;
+    const now = Math.floor(Date.now() / 1000);
+    appendClockEvent(emp.wallet, emp.name, {
+      employee: emp.wallet,
+      timestamp: now,
+      isClockIn: true,
+      weekNumber: getCurrentWeekNumber(),
+    } as import("@/types").ClockEvent);
+    // Invalidate after a brief wait to let the node catch up
+    const t = setTimeout(() => queryClient.invalidateQueries(), 1500);
+    return () => clearTimeout(t);
   }, [inSuccess]);
 
-  // After confirmed clock-out: log to 0G Storage and refetch
+  // After clock-out confirms: log to 0G Storage then invalidate all contract reads
   useEffect(() => {
-    if (outSuccess) {
-      const now = Math.floor(Date.now() / 1000);
-      appendClockEvent(emp.wallet, emp.name, {
-        employee: emp.wallet,
-        timestamp: now,
-        isClockIn: false,
-        weekNumber: getCurrentWeekNumber(),
-      } as import("@/types").ClockEvent).then(() => refetch());
-    }
+    if (!outSuccess) return;
+    const now = Math.floor(Date.now() / 1000);
+    appendClockEvent(emp.wallet, emp.name, {
+      employee: emp.wallet,
+      timestamp: now,
+      isClockIn: false,
+      weekNumber: getCurrentWeekNumber(),
+    } as import("@/types").ClockEvent);
+    const t = setTimeout(() => queryClient.invalidateQueries(), 1500);
+    return () => clearTimeout(t);
   }, [outSuccess]);
 
   const hours = weeklyHours ? Number((weeklyHours as any)[1]) : 0;
@@ -59,7 +64,6 @@ function EmployeeClockRow({ emp }: { emp: any }) {
   return (
     <div className="og-card rounded-2xl p-5">
       <div className="flex items-start justify-between gap-4 flex-wrap">
-        {/* Avatar + name */}
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl og-btn-primary flex items-center justify-center text-base font-bold shrink-0">
             {emp.name.charAt(0).toUpperCase()}
@@ -72,7 +76,6 @@ function EmployeeClockRow({ emp }: { emp: any }) {
           </div>
         </div>
 
-        {/* Stats */}
         <div className="flex items-center gap-4 flex-wrap">
           <div className="text-center">
             <p className="text-xs text-white/30 mb-1">Status</p>
@@ -102,21 +105,24 @@ function EmployeeClockRow({ emp }: { emp: any }) {
           )}
         </div>
 
-        {/* Buttons */}
         <div className="flex gap-2 shrink-0">
           <button
             onClick={() => clockInEmp(emp.wallet as `0x${string}`)}
             disabled={!!isClockedIn || busy || !emp.active}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold og-badge-success hover:bg-emerald-500/25 disabled:opacity-30 disabled:cursor-not-allowed transition"
           >
-            🟢 Clock In
+            {inPending || inConfirming ? (
+              <span className="animate-spin inline-block">⏳</span>
+            ) : "🟢"} Clock In
           </button>
           <button
             onClick={() => clockOutEmp(emp.wallet as `0x${string}`)}
             disabled={!isClockedIn || busy || !emp.active}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold og-badge-error hover:bg-red-500/25 disabled:opacity-30 disabled:cursor-not-allowed transition"
           >
-            🔴 Clock Out
+            {outPending || outConfirming ? (
+              <span className="animate-spin inline-block">⏳</span>
+            ) : "🔴"} Clock Out
           </button>
         </div>
       </div>
@@ -133,8 +139,8 @@ function EmployeeClockRow({ emp }: { emp: any }) {
   );
 }
 
-export default function ClockManagement() {
-  const { data: employees, isLoading } = useEmployeeList();
+export default function ClockManagement({ contractAddress }: { contractAddress?: `0x${string}` }) {
+  const { data: employees, isLoading } = useEmployeeList(contractAddress);
   const list = ((employees as any[]) || []).filter((e: any) => e.active);
 
   if (isLoading) {
@@ -157,24 +163,23 @@ export default function ClockManagement() {
 
   return (
     <div className="space-y-4">
-      {/* Header info */}
       <div className="og-card rounded-2xl px-5 py-4 flex items-center gap-3"
-        style={{ background: "rgba(124,58,237,0.08)", borderColor: "rgba(139,92,246,0.25)" }}>
+        style={{ background: "rgba(165,64,240,0.08)", borderColor: "rgba(165,64,240,0.25)" }}>
         <span className="text-xl">⏰</span>
         <div>
           <p className="text-white font-semibold text-sm">Clock Management</p>
           <p className="text-white/40 text-xs">
-            Clock employees in and out. Events are recorded on-chain and stored on 0G Storage.
+            Clock employees in and out. Events recorded on-chain and stored on 0G Storage.
           </p>
         </div>
         <div className="ml-auto flex items-center gap-1.5 text-xs og-badge-info px-3 py-1 rounded-full">
-          <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full og-pulse" />
+          <span className="w-1.5 h-1.5 rounded-full og-pulse" style={{ background: "#a540f0" }} />
           {list.length} active
         </div>
       </div>
 
       {list.map((emp: any) => (
-        <EmployeeClockRow key={emp.wallet} emp={emp} />
+        <EmployeeClockRow key={emp.wallet} emp={emp} contractAddress={contractAddress} />
       ))}
     </div>
   );

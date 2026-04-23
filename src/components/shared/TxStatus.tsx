@@ -32,7 +32,7 @@ export default function TxStatus({ hash, isPending, isConfirming, isSuccess, err
               href={`https://chainscan-galileo.0g.ai/tx/${hash}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-cyan-400 hover:text-cyan-300 hover:underline mt-1 block break-all transition"
+              className="text-xs hover:underline mt-1 block break-all transition og-gradient-text"
             >
               View on Explorer → {hash}
             </a>

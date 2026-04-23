@@ -10,11 +10,11 @@ import StatCard from "@/components/shared/StatCard";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 
-export default function MyAttendance() {
+export default function MyAttendance({ contractAddress }: { contractAddress?: `0x${string}` }) {
   const { address } = useAccount();
   const [attendance, setAttendance] = useState<StorageAttendance | null>(null);
   const weekNumber = getCurrentWeekNumber();
-  const { data: weeklyHours } = useWeeklyHours(address, weekNumber);
+  const { data: weeklyHours } = useWeeklyHours(address, weekNumber, contractAddress);
 
   useEffect(() => {
     if (!address) return;

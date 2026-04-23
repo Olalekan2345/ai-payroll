@@ -20,10 +20,18 @@ export const OG_GALILEO = {
 export const OG_STORAGE_RPC = "https://evmrpc-testnet.0g.ai";
 export const OG_INDEXER_RPC = "https://indexer-storage-testnet-turbo.0g.ai";
 
-// Contract address — set after deployment, or read from env
+// Factory address — deploy once with: npx hardhat run scripts/deployFactory.cjs --network 0g-galileo
+export const FACTORY_ADDRESS =
+  (process.env.NEXT_PUBLIC_FACTORY_ADDRESS as `0x${string}`) ||
+  "0x0000000000000000000000000000000000000000";
+
+// Legacy single-contract address (fallback for old deployments)
 export const CONTRACT_ADDRESS =
   (process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`) ||
   "0x0000000000000000000000000000000000000000";
+
+export const FACTORY_DEPLOYED = FACTORY_ADDRESS !== "0x0000000000000000000000000000000000000000";
+export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
 
 // Pay rate: 1 A0GI per hour (in wei)
 export const HOURLY_RATE_WEI = BigInt("1000000000000000000"); // 1e18

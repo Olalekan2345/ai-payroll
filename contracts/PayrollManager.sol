@@ -4,7 +4,13 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
+interface IPayrollFactory {
+    function markEmployee(address wallet) external;
+    function unmarkEmployee(address wallet) external;
+}
+
 contract PayrollManager is AccessControl, ReentrancyGuard {
+    address public factory;
     bytes32 public constant EMPLOYER_ROLE = keccak256("EMPLOYER_ROLE");
     bytes32 public constant EMPLOYEE_ROLE = keccak256("EMPLOYEE_ROLE");
 
@@ -65,9 +71,10 @@ contract PayrollManager is AccessControl, ReentrancyGuard {
     uint256 public constant WORK_END_HOUR = 17;   // 5 PM UTC
     uint256 public constant SECONDS_PER_HOUR = 3600;
 
-    constructor(address employer) {
+    constructor(address employer, address factory_) {
         _grantRole(DEFAULT_ADMIN_ROLE, employer);
         _grantRole(EMPLOYER_ROLE, employer);
+        factory = factory_;
     }
 
     receive() external payable {
@@ -97,6 +104,9 @@ contract PayrollManager is AccessControl, ReentrancyGuard {
         employeeList.push(wallet);
 
         _grantRole(EMPLOYEE_ROLE, wallet);
+        if (factory != address(0)) {
+            IPayrollFactory(factory).markEmployee(wallet);
+        }
         emit EmployeeRegistered(wallet, name, block.timestamp);
     }
 
@@ -132,6 +142,9 @@ contract PayrollManager is AccessControl, ReentrancyGuard {
         require(isEmployee[wallet], "Not an employee");
         employees[wallet].active = false;
         _revokeRole(EMPLOYEE_ROLE, wallet);
+        if (factory != address(0)) {
+            IPayrollFactory(factory).unmarkEmployee(wallet);
+        }
         emit EmployeeDeactivated(wallet);
     }
 
