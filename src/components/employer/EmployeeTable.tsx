@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEmployeeList, useWeeklyHours, useRemoveEmployee } from "@/hooks/usePayroll";
 import { getWeekNumber } from "@/lib/storage";
@@ -28,13 +28,14 @@ function EmployeeRow({
   const { removeEmployee, isPending, isConfirming, isSuccess, error, hash } = useRemoveEmployee(contractAddress);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  // After removal confirmed: invalidate cache and notify parent
-  if (isSuccess) {
-    setTimeout(() => {
+  useEffect(() => {
+    if (!isSuccess) return;
+    const t = setTimeout(() => {
       queryClient.invalidateQueries();
       onRemoved();
     }, 1000);
-  }
+    return () => clearTimeout(t);
+  }, [isSuccess]);
 
   return (
     <>

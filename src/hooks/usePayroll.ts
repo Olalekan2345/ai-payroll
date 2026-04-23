@@ -61,7 +61,7 @@ export function useIsClockedIn(address?: `0x${string}`, contractAddress?: `0x${s
     abi: PAYROLL_ABI,
     functionName: "isClockedIn",
     args: address ? [address] : undefined,
-    query: { enabled: !!address && addr !== "0x0000000000000000000000000000000000000000" },
+    query: { enabled: !!address && addr !== "0x0000000000000000000000000000000000000000", refetchInterval: 5000 },
   });
 }
 
