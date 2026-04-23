@@ -43,6 +43,8 @@ contract PayrollManager is AccessControl, ReentrancyGuard {
     address[] public employeeList;
     mapping(address => Employee) public employees;
     mapping(address => bool) public isEmployee;
+    mapping(address => bool) public everRegistered;   // prevents duplicate list entries on re-add
+    mapping(address => uint256) private _employeeIndex; // 1-indexed position in employeeList
 
     // weekNumber => employee => payroll
     mapping(uint256 => mapping(address => PayrollRecord)) public payrollRecords;
@@ -59,6 +61,7 @@ contract PayrollManager is AccessControl, ReentrancyGuard {
 
     // Events
     event EmployeeRegistered(address indexed wallet, string name, uint256 timestamp);
+    event EmployeeRemoved(address indexed wallet);
     event EmployeeDeactivated(address indexed wallet);
     event HourlyRateUpdated(address indexed wallet, uint256 newRateWei);
     event ClockIn(address indexed employee, uint256 timestamp, uint256 weekNumber);
@@ -101,7 +104,12 @@ contract PayrollManager is AccessControl, ReentrancyGuard {
             storageKey: storageKey
         });
         isEmployee[wallet] = true;
-        employeeList.push(wallet);
+        // Only push to array if this wallet was never registered (or was fully removed)
+        if (!everRegistered[wallet]) {
+            _employeeIndex[wallet] = employeeList.length + 1; // 1-indexed
+            employeeList.push(wallet);
+            everRegistered[wallet] = true;
+        }
 
         _grantRole(EMPLOYEE_ROLE, wallet);
         if (factory != address(0)) {
@@ -146,6 +154,39 @@ contract PayrollManager is AccessControl, ReentrancyGuard {
             IPayrollFactory(factory).unmarkEmployee(wallet);
         }
         emit EmployeeDeactivated(wallet);
+    }
+
+    // Fully removes an employee: clears their record and removes from the list.
+    // Re-adding them later will work cleanly with no duplicates.
+    function removeEmployee(address wallet) external onlyRole(EMPLOYER_ROLE) {
+        require(isEmployee[wallet], "Not an employee");
+
+        // Swap-and-pop from employeeList to remove without leaving gaps
+        uint256 idx = _employeeIndex[wallet] - 1; // convert to 0-indexed
+        uint256 lastIdx = employeeList.length - 1;
+        if (idx != lastIdx) {
+            address moved = employeeList[lastIdx];
+            employeeList[idx] = moved;
+            _employeeIndex[moved] = idx + 1; // update moved element's index
+        }
+        employeeList.pop();
+
+        // Clear clocked-in state if needed
+        if (currentlyClockedIn[wallet]) {
+            currentlyClockedIn[wallet] = false;
+        }
+
+        // Reset all employee tracking
+        delete employees[wallet];
+        isEmployee[wallet] = false;
+        everRegistered[wallet] = false; // allows clean re-registration
+        _employeeIndex[wallet] = 0;
+
+        _revokeRole(EMPLOYEE_ROLE, wallet);
+        if (factory != address(0)) {
+            IPayrollFactory(factory).unmarkEmployee(wallet);
+        }
+        emit EmployeeRemoved(wallet);
     }
 
     function executePayroll(address[] calldata wallets, uint256 weekNumber)

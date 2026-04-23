@@ -1,57 +1,130 @@
 "use client";
 
 import { useState } from "react";
-import { useEmployeeList, useWeeklyHours } from "@/hooks/usePayroll";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEmployeeList, useWeeklyHours, useRemoveEmployee } from "@/hooks/usePayroll";
 import { getWeekNumber } from "@/lib/storage";
 import StatusBadge from "@/components/shared/StatusBadge";
 import UpdateSalaryModal from "@/components/employer/UpdateSalaryModal";
+import TxStatus from "@/components/shared/TxStatus";
 import { formatEther } from "viem";
 
-function EmployeeRow({ emp, onEditRate, contractAddress }: { emp: any; onEditRate: (emp: any) => void; contractAddress?: `0x${string}` }) {
+function EmployeeRow({
+  emp,
+  onEditRate,
+  contractAddress,
+  onRemoved,
+}: {
+  emp: any;
+  onEditRate: (emp: any) => void;
+  contractAddress?: `0x${string}`;
+  onRemoved: () => void;
+}) {
+  const queryClient = useQueryClient();
   const weekNumber = getWeekNumber(new Date());
   const { data: weeklyHours } = useWeeklyHours(emp.wallet as `0x${string}`, weekNumber, contractAddress);
   const hours = weeklyHours ? Number(weeklyHours[1]) : 0;
 
+  const { removeEmployee, isPending, isConfirming, isSuccess, error, hash } = useRemoveEmployee(contractAddress);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  // After removal confirmed: invalidate cache and notify parent
+  if (isSuccess) {
+    setTimeout(() => {
+      queryClient.invalidateQueries();
+      onRemoved();
+    }, 1000);
+  }
+
   return (
-    <tr>
-      <td>
-        <div>
-          <p className="text-white font-medium">{emp.name}</p>
-          <p className="text-xs text-white/30 font-mono">
-            {emp.wallet.slice(0, 6)}…{emp.wallet.slice(-4)}
-          </p>
-        </div>
-      </td>
-      <td>
-        <StatusBadge label={emp.active ? "Active" : "Inactive"} variant={emp.active ? "success" : "neutral"} />
-      </td>
-      <td>
-        <div className="flex items-center gap-2">
-          <span className="text-white/60 text-sm">{formatEther(emp.hourlyRateWei)} A0GI/hr</span>
-          <button
-            onClick={() => onEditRate(emp)}
-            title="Update salary rate"
-            className="og-btn-ghost text-xs px-2 py-0.5 rounded-lg opacity-60 hover:opacity-100"
+    <>
+      <tr>
+        <td>
+          <div>
+            <p className="text-white font-medium">{emp.name}</p>
+            <p className="text-xs text-white/30 font-mono">
+              {emp.wallet.slice(0, 6)}…{emp.wallet.slice(-4)}
+            </p>
+          </div>
+        </td>
+        <td>
+          <StatusBadge label={emp.active ? "Active" : "Inactive"} variant={emp.active ? "success" : "neutral"} />
+        </td>
+        <td>
+          <div className="flex items-center gap-2">
+            <span className="text-white/60 text-sm">{formatEther(emp.hourlyRateWei)} A0GI/hr</span>
+            <button
+              onClick={() => onEditRate(emp)}
+              title="Update salary rate"
+              className="og-btn-ghost text-xs px-2 py-0.5 rounded-lg opacity-60 hover:opacity-100"
+            >
+              ✏️
+            </button>
+          </div>
+        </td>
+        <td className="text-white/60 text-sm">{hours}h this week</td>
+        <td className="text-xs text-white/30">
+          {new Date(Number(emp.registeredAt) * 1000).toLocaleDateString()}
+        </td>
+        <td>
+          <a
+            href={`https://chainscan-galileo.0g.ai/address/${emp.wallet}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="og-gradient-text text-xs transition hover:opacity-80"
           >
-            ✏️
-          </button>
-        </div>
-      </td>
-      <td className="text-white/60 text-sm">{hours}h this week</td>
-      <td className="text-xs text-white/30">
-        {new Date(Number(emp.registeredAt) * 1000).toLocaleDateString()}
-      </td>
-      <td>
-        <a
-          href={`https://chainscan-galileo.0g.ai/address/${emp.wallet}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="og-gradient-text text-xs transition hover:opacity-80"
-        >
-          View ↗
-        </a>
-      </td>
-    </tr>
+            View ↗
+          </a>
+        </td>
+        <td>
+          {!confirmOpen ? (
+            <button
+              onClick={() => setConfirmOpen(true)}
+              disabled={isPending || isConfirming || isSuccess}
+              title="Remove employee"
+              className="text-xs px-2.5 py-1 rounded-lg og-badge-error hover:bg-red-500/25 disabled:opacity-30 disabled:cursor-not-allowed transition"
+            >
+              {isSuccess ? "✓ Removed" : isPending || isConfirming ? "⏳" : "Remove"}
+            </button>
+          ) : (
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-white/40">Sure?</span>
+              <button
+                onClick={() => {
+                  removeEmployee(emp.wallet as `0x${string}`);
+                  setConfirmOpen(false);
+                }}
+                className="text-xs px-2 py-0.5 rounded og-badge-error hover:bg-red-500/30 transition"
+              >
+                Yes
+              </button>
+              <button
+                onClick={() => setConfirmOpen(false)}
+                className="text-xs px-2 py-0.5 rounded og-badge-neutral hover:bg-white/10 transition"
+              >
+                No
+              </button>
+            </div>
+          )}
+        </td>
+      </tr>
+
+      {/* Inline TX status row */}
+      {(isPending || isConfirming || error) && (
+        <tr>
+          <td colSpan={7} className="py-0 px-4 pb-2">
+            <TxStatus
+              hash={hash}
+              isPending={isPending}
+              isConfirming={isConfirming}
+              isSuccess={false}
+              error={error as Error}
+              label={`Remove ${emp.name}`}
+            />
+          </td>
+        </tr>
+      )}
+    </>
   );
 }
 
@@ -98,11 +171,18 @@ export default function EmployeeTable({ refresh, contractAddress }: { refresh?: 
                   <th className="text-left">This Week</th>
                   <th className="text-left">Joined</th>
                   <th className="text-left">Explorer</th>
+                  <th className="text-left">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {list.map((emp: any) => (
-                  <EmployeeRow key={emp.wallet} emp={emp} onEditRate={setEditingEmp} contractAddress={contractAddress} />
+                  <EmployeeRow
+                    key={emp.wallet}
+                    emp={emp}
+                    onEditRate={setEditingEmp}
+                    contractAddress={contractAddress}
+                    onRemoved={() => refetch()}
+                  />
                 ))}
               </tbody>
             </table>

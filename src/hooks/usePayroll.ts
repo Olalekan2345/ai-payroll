@@ -227,6 +227,23 @@ export function useExecutePayroll(contractAddress?: `0x${string}`) {
   return { executePayroll, hash, isPending, isConfirming, isSuccess, error };
 }
 
+export function useRemoveEmployee(contractAddress?: `0x${string}`) {
+  const addr = resolveContract(contractAddress);
+  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  const removeEmployee = (wallet: `0x${string}`) => {
+    writeContract({
+      address: addr,
+      abi: PAYROLL_ABI,
+      functionName: "removeEmployee",
+      args: [wallet],
+    });
+  };
+
+  return { removeEmployee, hash, isPending, isConfirming, isSuccess, error };
+}
+
 export function useDepositToContract() {
   const { sendTransaction, data: hash, isPending, error } = useSendTransaction();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
