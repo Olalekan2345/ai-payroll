@@ -113,7 +113,7 @@ contract PayrollManager is AccessControl, ReentrancyGuard {
 
         _grantRole(EMPLOYEE_ROLE, wallet);
         if (factory != address(0)) {
-            IPayrollFactory(factory).markEmployee(wallet);
+            try IPayrollFactory(factory).markEmployee(wallet) {} catch {}
         }
         emit EmployeeRegistered(wallet, name, block.timestamp);
     }
@@ -151,7 +151,7 @@ contract PayrollManager is AccessControl, ReentrancyGuard {
         employees[wallet].active = false;
         _revokeRole(EMPLOYEE_ROLE, wallet);
         if (factory != address(0)) {
-            IPayrollFactory(factory).unmarkEmployee(wallet);
+            try IPayrollFactory(factory).unmarkEmployee(wallet) {} catch {}
         }
         emit EmployeeDeactivated(wallet);
     }
@@ -184,7 +184,7 @@ contract PayrollManager is AccessControl, ReentrancyGuard {
 
         _revokeRole(EMPLOYEE_ROLE, wallet);
         if (factory != address(0)) {
-            IPayrollFactory(factory).unmarkEmployee(wallet);
+            try IPayrollFactory(factory).unmarkEmployee(wallet) {} catch {}
         }
         emit EmployeeRemoved(wallet);
     }
